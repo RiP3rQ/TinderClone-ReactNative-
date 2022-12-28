@@ -1,12 +1,13 @@
-import { View, Text } from "react-native";
+import { View, Text, Button } from "react-native";
 import useAuth from "../hooks/useAuth";
 
 const LoginScreen = () => {
-  const { user } = useAuth();
+  const { signIn } = useAuth();
 
   return (
     <View>
-      <Text>LoginScreen {user}</Text>
+      <Text>LoginScreen</Text>
+      <Button title="Login" onPress={signIn} />
     </View>
   );
 };
