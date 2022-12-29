@@ -1,20 +1,40 @@
-import { View, Text, Button } from "react-native";
+import { View, Text, Button, TouchableOpacity, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import useAuth from "../hooks/useAuth";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AntDesign, Entypo, Ionicons } from "@expo/vector-icons";
+import Swiper from "react-native-deck-swiper";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
-    <View>
-      <Text>HomeScreen</Text>
-      <Button
-        title="Go to chat screen"
-        onPress={() => navigation.navigate("Chat")}
-      />
-      <Button title="Log out" onPress={logout} />
-    </View>
+    <SafeAreaView>
+      {/* HEADER */}
+      <View className="flex-row items-center justify-between relative px-5">
+        {/* AVATAR ELEMENT*/}
+        <TouchableOpacity onPress={logout}>
+          <Image
+            source={{
+              uri: user.photoURL,
+            }}
+            className="h-10 w-10 rounded-full"
+          />
+        </TouchableOpacity>
+        {/* LOGO ELEMENT*/}
+        <TouchableOpacity>
+          <Image source={require("../logo.png")} className="h-12 w-12" />
+        </TouchableOpacity>
+        {/* MESSAGES ELEMENT */}
+        <TouchableOpacity onPress={() => navigation.navigate("Chat")}>
+          <Ionicons name="chatbubbles-sharp" size={45} color="#FF5864" />
+        </TouchableOpacity>
+      </View>
+      {/* END OF HEADER */}
+
+      {/* SWIPER CARDS */}
+    </SafeAreaView>
   );
 };
 
