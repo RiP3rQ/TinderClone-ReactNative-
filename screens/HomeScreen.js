@@ -11,34 +11,111 @@ import useAuth from "../hooks/useAuth";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AntDesign, Entypo, Ionicons } from "@expo/vector-icons";
 import Swiper from "react-native-deck-swiper";
-import { useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  collection,
+  doc,
+  getDocs,
+  onSnapshot,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
+import { db } from "../firebase";
 
-const DUMMY_DATA = [
-  {
-    displayName: "Rafal Pompa",
-    job: "esssaa",
-    photoURL: "https://nafakcie.pl/wp-content/uploads/2022/08/gigachad-1.jpg",
-    age: 22,
-  },
-  {
-    displayName: "Sonny Sangha",
-    job: "IT",
-    photoURL: "https://avatars.githubusercontent.com/u/24712956?v=4",
-    age: 27,
-  },
-  {
-    displayName: "Elon Musk",
-    job: "Money making",
-    photoURL:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Elon_Musk_Royal_Society.jpg/640px-Elon_Musk_Royal_Society.jpg",
-    age: 44,
-  },
-];
+// const DUMMY_DATA = [
+//   {
+//     displayName: "RiP3rQ",
+//     job: "esssaa",
+//     photoURL: "https://nafakcie.pl/wp-content/uploads/2022/08/gigachad-1.jpg",
+//     age: 22,
+//   },
+//   {
+//     displayName: "Sonny Sangha",
+//     job: "IT",
+//     photoURL: "https://avatars.githubusercontent.com/u/24712956?v=4",
+//     age: 27,
+//   },
+//   {
+//     displayName: "Elon Musk",
+//     job: "Money making",
+//     photoURL:
+//       "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Elon_Musk_Royal_Society.jpg/640px-Elon_Musk_Royal_Society.jpg",
+//     age: 44,
+//   },
+// ];
 
 const HomeScreen = () => {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
   const swipeRef = useRef(null);
+  const [profiles, setProfiles] = useState([]);
+
+  useLayoutEffect(
+    () =>
+      onSnapshot(doc(db, "users", user.uid), (snapshot) => {
+        if (!snapshot.exists()) {
+          navigation.navigate("Modal");
+        }
+      }),
+    []
+  );
+
+  useEffect(() => {
+    let unsub;
+    const fetchCards = async () => {
+      // all passes
+      const passes = await getDocs(
+        collection(db, "users", user.uid, "passes")
+      ).then((snapshot) => snapshot.docs.map((doc) => doc.id));
+      const swipes = await getDocs(
+        collection(db, "users", user.uid, "swipes")
+      ).then((snapshot) => snapshot.docs.map((doc) => doc.id));
+
+      const passesUserIds = passes.length > 0 ? passes : ["test"];
+      const swipedUserIds = swipes.length > 0 ? swipes : ["test"];
+
+      console.log([...passesUserIds, ...swipedUserIds]);
+
+      // fetch FILTERED data from firebase to variable as objects
+      unsub = onSnapshot(
+        query(
+          collection(db, "users"),
+          where("id", "not-in", [...passesUserIds, ...swipedUserIds])
+        ),
+        (snapshot) => {
+          setProfiles(
+            snapshot.docs
+              .filter((doc) => doc.id !== user.uid)
+              .map((doc) => ({
+                id: doc.id,
+                ...doc.data(),
+              }))
+          );
+        }
+      );
+    };
+
+    fetchCards();
+    return unsub;
+  }, [db]);
+
+  const swipeLeft = async (cardIndex) => {
+    if (!profiles[cardIndex]) return;
+
+    const userSwiped = profiles[cardIndex];
+    console.log(`You swipe left on ${userSwiped.displayName}`);
+
+    setDoc(doc(db, "users", user.uid, "passes", userSwiped.id), userSwiped);
+  };
+  const swipeRight = async (cardIndex) => {
+    if (!profiles[cardIndex]) return;
+
+    const userSwiped = profiles[cardIndex];
+    console.log(`You swipe right on ${userSwiped.displayName}`);
+
+    setDoc(doc(db, "users", user.uid, "swipes", userSwiped.id), userSwiped);
+  };
 
   return (
     <SafeAreaView className="flex-1 top-2">
@@ -69,7 +146,7 @@ const HomeScreen = () => {
         <Swiper
           ref={swipeRef}
           containerStyle={{ backgroundColor: "transparent" }}
-          cards={DUMMY_DATA}
+          cards={profiles}
           stackSize={5}
           cardIndex={0}
           animateCardOpacity
@@ -93,37 +170,55 @@ const HomeScreen = () => {
               },
             },
           }}
-          onSwipedLeft={() => {
+          onSwipedLeft={(cardIndex) => {
             console.log("NOPE");
+            swipeLeft(cardIndex);
           }}
-          onSwipedRight={() => {
+          onSwipedRight={(cardIndex) => {
             console.log("MATCH");
+            swipeRight(cardIndex);
           }}
           verticalSwipe={false}
-          renderCard={(card) => (
-            <View
-              className="relative bg-white h-5/6 rounded-xl"
-              style={styles.cardShadow}
-            >
-              <Image
-                source={{
-                  uri: card.photoURL,
-                }}
-                className="absolute top-0 h-full w-full rounded-xl"
-              />
-              <View className="absolute bottom-0 bg-neutral-400/[.2] w-full h-20 justify-between items-center flex-row px-6 py-2 rounded-b-xl">
-                <View>
-                  <Text className="text-white text-3xl font-bold">
-                    {card.displayName}
+          renderCard={(card) =>
+            card ? (
+              <View
+                className="relative bg-white h-5/6 rounded-xl"
+                style={styles.cardShadow}
+                key={card.id}
+              >
+                <Image
+                  source={{
+                    uri: card.photoURL,
+                  }}
+                  className="absolute top-0 h-full w-full rounded-xl"
+                />
+                <View className="absolute bottom-0 bg-neutral-400/[.2] w-full h-20 justify-between items-center flex-row px-6 py-2 rounded-b-xl">
+                  <View>
+                    <Text className="text-white text-3xl font-bold">
+                      {card.displayName}
+                    </Text>
+                    <Text className="text-white text-lg">{card.job}</Text>
+                  </View>
+                  <Text className="text-white text-2xl font-bold">
+                    {card.age}
                   </Text>
-                  <Text className="text-white text-lg">{card.job}</Text>
                 </View>
-                <Text className="text-white text-2xl font-bold">
-                  {card.age}
-                </Text>
               </View>
-            </View>
-          )}
+            ) : (
+              <View
+                className="relative bg-white h-4/5 rounded-xl justify-center items-center"
+                style={styles.cardShadow}
+              >
+                <Text className="pb-5 font-bold">No more profiles!</Text>
+                <Image
+                  className="h-20 w-20"
+                  source={{
+                    uri: "https://links.papareact.com/6gb",
+                  }}
+                />
+              </View>
+            )
+          }
         />
       </View>
       {/* END OF SWIPER CARDS */}
