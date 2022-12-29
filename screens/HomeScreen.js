@@ -41,9 +41,9 @@ const HomeScreen = () => {
   const swipeRef = useRef(null);
 
   return (
-    <SafeAreaView className="flex-1">
+    <SafeAreaView className="flex-1 top-2">
       {/* HEADER */}
-      <View className="flex-row items-center justify-between relative px-5 top-2">
+      <View className="flex-row items-center justify-between relative px-5">
         {/* AVATAR ELEMENT*/}
         <TouchableOpacity onPress={logout}>
           <Image
@@ -54,7 +54,7 @@ const HomeScreen = () => {
           />
         </TouchableOpacity>
         {/* LOGO ELEMENT*/}
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("Modal")}>
           <Image source={require("../logo.png")} className="h-12 w-12" />
         </TouchableOpacity>
         {/* MESSAGES ELEMENT */}

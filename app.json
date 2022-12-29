@@ -33,6 +33,14 @@
       "eas": {
         "projectId": "5150e3a6-cd6a-4ff8-b32b-7a1c65ec6427"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with people on tinder."
+        }
+      ]
+    ]
   }
 }
