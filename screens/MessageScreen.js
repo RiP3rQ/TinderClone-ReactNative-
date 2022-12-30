@@ -1,5 +1,13 @@
 import { useRoute } from "@react-navigation/native";
-import { useState } from "react";
+import {
+  addDoc,
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+} from "firebase/firestore";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -17,6 +25,7 @@ import ReceiverMessage from "../components/ReceiverMessage";
 import SenderMessage from "../components/SenderMessage";
 import useAuth from "../hooks/useAuth";
 import getMatchedUserInfo from "../lib/getMatchedUserInfo";
+import { db } from "../firebase";
 
 const MessagesScreen = () => {
   const { user } = useAuth();
@@ -25,8 +34,33 @@ const MessagesScreen = () => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
 
+  useEffect(
+    () =>
+      onSnapshot(
+        query(
+          collection(db, "matches", matchDetails.id, "messages"),
+          orderBy("timestamp", "desc")
+        ),
+        (snapshot) =>
+          setMessages(
+            snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }))
+          )
+      ),
+    [matchDetails, db]
+  );
+
   const sendMessage = () => {
-    console.log("set");
+    addDoc(collection(db, "matches", matchDetails.id, "messages"), {
+      timestamp: serverTimestamp(),
+      userId: user.uid,
+      displayName: user.displayName,
+      photoURL: matchDetails.users[user.uid].photoURL,
+      message: input,
+    });
+
     setInput("");
   };
 
@@ -42,9 +76,10 @@ const MessagesScreen = () => {
         className="flex-1"
         keyboardVerticalOffset={10}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss()}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <FlatList
             data={messages}
+            inverted={-1}
             className="pl-4"
             keyExtractor={(item) => item.id}
             renderItem={({ item: message }) =>
